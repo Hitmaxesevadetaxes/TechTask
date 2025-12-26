@@ -15,11 +15,15 @@ public class VirtualJoystick : MonoBehaviour, IDragHandler, IPointerDownHandler,
     // This property gives us the (X, Y) input to use in PlayerController
     public Vector2 InputDirection { get; private set; } = Vector2.zero;
 
-    private Vector2 initialPosition;
+    private Vector2 initialAnchoredPosition;
 
     private void Start()
     {
-        initialPosition = joystickBackground.rectTransform.position;
+        // store anchored position (safer than world position for UI)
+        initialAnchoredPosition = joystickBackground.rectTransform.anchoredPosition;
+
+        // Ensure handle is centered at start
+        joystickHandle.rectTransform.position = joystickBackground.rectTransform.TransformPoint(Vector3.zero);
     }
 
     public void OnPointerDown(PointerEventData eventData)
@@ -29,39 +33,50 @@ public class VirtualJoystick : MonoBehaviour, IDragHandler, IPointerDownHandler,
 
     public void OnDrag(PointerEventData eventData)
     {
-        Vector2 position = Vector2.zero;
+        Vector2 localPoint;
 
-        // Calculate position relative to the background
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+        // Get local point inside the background rect. Use the event camera if available.
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
             joystickBackground.rectTransform,
             eventData.position,
             eventData.pressEventCamera,
-            out position))
+            out localPoint))
         {
-            // Get the size of the background
-            Vector2 size = joystickBackground.rectTransform.sizeDelta;
-
-            // Calculate the input direction (Normalized -1 to 1)
-            InputDirection = new Vector2(
-                position.x / (size.x / 2),
-                position.y / (size.y / 2)
-            );
-
-            // Clamp values so it doesn't go over 1.0
-            InputDirection = (InputDirection.magnitude > 1.0f) ? InputDirection.normalized : InputDirection;
-
-            // Move the Handle Visuals
-            joystickHandle.rectTransform.anchoredPosition = new Vector2(
-                InputDirection.x * (size.x / 2) * handleRange,
-                InputDirection.y * (size.y / 2) * handleRange
-            );
+            // Fallback to main camera if conversion fails (safe fallback)
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                joystickBackground.rectTransform,
+                eventData.position,
+                Camera.main,
+                out localPoint);
         }
+
+        // Use the rect size (handles scaled UI correctly)
+        Vector2 rectSize = joystickBackground.rectTransform.rect.size;
+
+        // Calculate normalized (-1..1) input
+        InputDirection = new Vector2(
+            localPoint.x / (rectSize.x * 0.5f),
+            localPoint.y / (rectSize.y * 0.5f)
+        );
+
+        if (InputDirection.magnitude > 1f)
+            InputDirection = InputDirection.normalized;
+
+        // Compute handle offset in local space
+        Vector2 handleLocal = new Vector2(
+            InputDirection.x * (rectSize.x * 0.5f) * handleRange,
+            InputDirection.y * (rectSize.y * 0.5f) * handleRange
+        );
+
+        // Place handle using world position so it works even if handle is not parented to background
+        Vector3 worldPos = joystickBackground.rectTransform.TransformPoint(handleLocal);
+        joystickHandle.rectTransform.position = worldPos;
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
-        // Reset everything when letting go
+        // Reset input and place handle back to the background center
         InputDirection = Vector2.zero;
-        joystickHandle.rectTransform.anchoredPosition = Vector2.zero;
+        joystickHandle.rectTransform.position = joystickBackground.rectTransform.TransformPoint(Vector3.zero);
     }
 }

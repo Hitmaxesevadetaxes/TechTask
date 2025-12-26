@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b0b13cce51a6fb45a1c5039be79d1c7, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: Assembly-CSharp::GameConfig
-  SpawnAreaSize: {x: 20, y: 20}
-  ItemsCount: 10
+  SpawnAreaSize: {x: 18, y: 18}
+  ItemsCount: 7
   PlayerBaseSpeed: 5
   PlayerBaseSize: 0.5
   SpeedItemColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}

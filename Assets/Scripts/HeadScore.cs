@@ -20,14 +20,10 @@ public class HeadScore : MonoBehaviour
 
     public void ResetScore()
     {
-       
-
         if (_presenter != null)
         {
             _presenter.Reset();
-           
         }
-       
     }
 
     public void UpdateText(string text)
@@ -36,12 +32,20 @@ public class HeadScore : MonoBehaviour
             _scoreText.text = text;
     }
 
-    // Make text face the camera
+    // Simplified: rotate only the text to face the camera, keep it upright
     void LateUpdate()
     {
-        if (Camera.main != null)
-            transform.LookAt(transform.position + Camera.main.transform.rotation * Vector3.forward,
-                             Camera.main.transform.rotation * Vector3.up);
+        if (Camera.main == null || _scoreText == null) return;
+
+        Vector3 target = Camera.main.transform.position;
+        // keep label upright by matching its Y
+        target.y = _scoreText.transform.position.y;
+
+        // Make text face the camera
+        _scoreText.transform.LookAt(target);
+
+        // TMP faces backwards by default in many setups — flip to face camera
+        _scoreText.transform.Rotate(0f, 180f, 0f);
     }
 }
 
